@@ -108,10 +108,10 @@ CMAKE_EXECUTABLE_MAIN = """\
 
 
 int main(int argc, char const *argv[])
-{
-    printf("Hallo allemaal, groetjes van {name}\n");
+{{
+    printf("Hallo allemaal, groetjes van {name}\\n");
     return 0;
-}
+}}
 
 """.format
 
@@ -187,7 +187,7 @@ def create_executable(name):
     insert_into_file_after_line(os.path.join(BASE_DIR, 'CMakeLists.txt'),
                                 CMAKE_BASE_COMMENT,
                                 CMAKE_SUBDIR(name=name))
-    create_file_and_format(libdir, 'CMakeLists.txt',
+    create_file_and_format(exedir, 'CMakeLists.txt',
                            source=CMAKE_EXECUTABLE, name=name)
     create_file_and_format(srcdir, 'main.cpp',
                            source=CMAKE_EXECUTABLE_MAIN,
