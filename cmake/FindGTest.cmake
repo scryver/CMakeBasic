@@ -18,7 +18,7 @@ ExternalProject_Add(googletest
     -Dgtest_force_shared_crt=${GTEST_FORCE_SHARED_CRT}
     -Dgtest_disable_pthreads=${GTEST_DISABLE_PTHREADS}
     -DBUILD_GTEST=ON
-    PREFIX "${CMAKE_CURRENT_BINARY_DIR}"
+    PREFIX "${CMAKE_SOURCE_DIR}/vendor/gtest"
     # Disable install step
     INSTALL_COMMAND ""
 )
@@ -31,31 +31,20 @@ SET(GTEST_INCLUDE_DIRS ${source_dir}/googletest/include)
 ExternalProject_Get_Property(googletest binary_dir)
 SET(GTEST_LIBS_DIR ${binary_dir}/googlemock/gtest)
 
-if(NOT WIN32 OR MINGW)
-    FIND_LIBRARY( GTEST_gtest_LIBRARY
-        NAMES
-            gtest
-        HINTS
-            "${GTEST_LIBS_DIR}"
-        PATHS
-            "${GTEST_LIBS_DIR}"
-        DOC
-            "The gtest library"
+ADD_LIBRARY(gtest      SHARED IMPORTED)
+ADD_LIBRARY(gtest_main SHARED IMPORTED)
+
+IF(NOT WIN32 OR MINGW)
+    SET_TARGET_PROPERTIES(gtest PROPERTIES
+      IMPORTED_LOCATION ${GTEST_LIBS_DIR}/libgtest.a
     )
-    FIND_LIBRARY( GTEST_gtest_main_LIBRARY
-        NAMES
-            gtest_main
-        HINTS
-            "${GTEST_LIBS_DIR}"
-        PATHS
-            "${GTEST_LIBS_DIR}"
-        DOC
-            "The gtest_main library"
+    SET_TARGET_PROPERTIES(gtest_main PROPERTIES
+      IMPORTED_LOCATION ${GTEST_LIBS_DIR}/libgtest_main.a
     )
-    SET(GTEST_LIBRARIES "${GTEST_gtest_LIBRARY}"
-                        "${GTEST_gtest_main_LIBRARY}"
+    SET(GTEST_LIBRARIES gtest
+                        gtest_main
                         "${CMAKE_THREAD_LIBS_INIT}")
-else()
+ELSE()
     MESSAGE("Not implemented")
     # SET(GTEST_LIBRARIES
     #     debug ${GTEST_LIBS_DIR}/DebugLibs/${CMAKE_FIND_LIBRARY_PREFIXES}gtest${CMAKE_FIND_LIBRARY_SUFFIXES}
@@ -63,6 +52,9 @@ else()
     #     optimized ${GTEST_LIBS_DIR}/ReleaseLibs/${CMAKE_FIND_LIBRARY_PREFIXES}gtest${CMAKE_FIND_LIBRARY_SUFFIXES}
     #     optimized ${GTEST_LIBS_DIR}/ReleaseLibs/${CMAKE_FIND_LIBRARY_PREFIXES}gtest_main${CMAKE_FIND_LIBRARY_SUFFIXES}
     # )
-endif()
+ENDIF()
+
+ADD_DEPENDENCIES(gtest      googletest)
+ADD_DEPENDENCIES(gtest_main googletest)
 
 SET(GTEST_FOUND "YES")
