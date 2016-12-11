@@ -1,0 +1,16 @@
+{
+    "folders": [
+        // {
+        //     "name": "Source",
+        //     "path": "src",
+        // },
+        // {
+        //     "name": "Project",
+        //     "path": ".",
+        //     "folder_exclude_patterns": ["src"],
+        // }
+        {
+            "path": "."
+        }
+    ]
+}
