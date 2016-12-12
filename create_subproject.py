@@ -97,8 +97,7 @@ CMAKE_EXECUTABLE = """\
 SET(EXECUTABLE_NAME "{name}")
 
 ADD_EXECUTABLE(${{EXECUTABLE_NAME}}
-               src/main.cpp
-               src/{name}.cpp)
+               src/main.cpp)
 
 # TARGET_LINK_LIBRARIES(${{EXECUTABLE_NAME}} LINK_PUBLIC voorbeeld)
 """.format
