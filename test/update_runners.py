@@ -90,16 +90,14 @@ def update_all_runners():
                 if file.startswith('test_'):
                     test_files.append(file)
 
-        test_functions = []
         if test_files:
             for file in test_files:
-                test_functions.extend(find_test_functions(os.path.join(dirname, file)))
-
-        if test_functions:
-            if not 'main.c' in files:
-                with open(os.path.join(dirname, 'main.c'), 'w') as f:
-                    f.write('\n')
-            append_test_functions(os.path.join(dirname, 'main.c'), test_functions)
+                main_name = 'main_' + file.replace('test_', '')
+                test_functions = find_test_functions(os.path.join(dirname, file))
+                if not main_name in files:
+                    with open(os.path.join(dirname, main_name), 'w') as f:
+                        f.write('\n')
+                append_test_functions(os.path.join(dirname, main_name), test_functions)
 
 
 if __name__ == '__main__':

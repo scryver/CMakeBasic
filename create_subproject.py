@@ -52,7 +52,7 @@ int {name}_func(int a)
 
 """.format
 
-CMAKE_TEST_LIBRARY = """\
+CMAKE_GTEST_LIBRARY = """\
 FILE(GLOB SRCS src/*.{extension})
 
 ADD_EXECUTABLE(test{CapName} ${{SRCS}})
@@ -66,6 +66,32 @@ INCLUDE_DIRECTORIES(${{TEST_FRAMEWORK_INCLUDE_DIRS}})
 
 # ADD_CUSTOM_COMMAND(TARGET test{CapName} POST_BUILD COMMAND "./test{CapName}")
 ADD_TEST({CapName} test{CapName})
+
+""".format
+
+CMAKE_UNITY_TEST_LIBRARY = """\
+FILE(GLOB ALL_TEST_SRCS src/test_*.{extension})
+
+INCLUDE_DIRECTORIES(${{TEST_FRAMEWORK_INCLUDE_DIRS}})
+
+FOREACH(TEST_SRC ${{ALL_TEST_SRCS}})
+    GET_FILENAME_COMPONENT(TEST_NAME ${{TEST_SRC}} NAME)
+    STRING(REPLACE "test_" "main_" MAIN_SRC ${{TEST_SRC}})
+    STRING(REPLACE "test_" "" TEST_NAME ${{TEST_NAME}})
+    STRING(REPLACE ".{extension}" "" TEST_NAME ${{TEST_NAME}})
+
+    IF (EXISTS "${{{allCaps}_SRC_DIR}}/${{TEST_NAME}}.{extension}")
+        ADD_EXECUTABLE(test${{TEST_NAME}} ${{TEST_SRC}} ${{MAIN_SRC}}
+                    ${{{allCaps}_SRC_DIR}}/${{TEST_NAME}}.{extension}
+                    )
+    ELSE()
+        ADD_EXECUTABLE(test${{TEST_NAME}} ${{TEST_SRC}} ${{MAIN_SRC}})
+    ENDIF()
+
+    TARGET_LINK_LIBRARIES(test${{TEST_NAME}} {name} ${{TEST_FRAMEWORK_LIBRARIES}})
+
+    ADD_TEST(${{TEST_NAME}} test${{TEST_NAME}})
+ENDFOREACH()
 
 """.format
 
@@ -89,20 +115,6 @@ TEST({CapName}, StommeFunc)
 {{
     int a = 5;
     EXPECT_EQ({name}_func(a), 25);
-}}
-
-""".format
-
-CMAKE_UNITY_MAIN = """\
-#include "unity.h"
-
-extern void test_StommeFunc_should_Multiply(void);
-
-int main(int argc, char* argv[])
-{{
-    UNITY_BEGIN();
-    RUN_TEST(test_StommeFunc_should_Multiply);
-    return UNITY_END();
 }}
 
 """.format
@@ -197,10 +209,12 @@ def create_library(name, src_type, test_framework):
                            name=name)
 
     if test_framework == 'gtest':
+        test_lib = CMAKE_GTEST_LIBRARY
         main_src = CMAKE_GTEST_MAIN
         test_src = CMAKE_GTEST_SOURCE
     elif test_framework == 'unity':
-        main_src = CMAKE_UNITY_MAIN
+        test_lib = CMAKE_UNITY_TEST_LIBRARY
+        main_src = None
         test_src = CMAKE_UNITY_SOURCE
     else:
         raise NotImplementedError("Undefined test framework")
@@ -209,11 +223,13 @@ def create_library(name, src_type, test_framework):
                                 CMAKE_TEST_COMMENT,
                                 CMAKE_SUBDIR(name=name))
     create_file_and_format(testlibdir, 'CMakeLists.txt',
-                           source=CMAKE_TEST_LIBRARY,
+                           source=test_lib,
                            name=name, CapName=name.capitalize(),
+                           allCaps=name.upper(),
                            extension=src_type)
-    create_file_and_format(testsrcdir, 'main.' + src_type,
-                           source=main_src)
+    if main_src:
+        create_file_and_format(testsrcdir, 'main.' + src_type,
+                               source=main_src)
     create_file_and_format(testsrcdir, 'test_' + name + '.' + src_type,
                            source=test_src,
                            name=name, CapName=name.capitalize())
