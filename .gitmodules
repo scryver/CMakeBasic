@@ -1,0 +1,6 @@
+[submodule "vendor/Unity"]
+	path = vendor/Unity
+	url = git@github.com:ThrowTheSwitch/Unity
+[submodule "vendor/fff"]
+	path = vendor/fff
+	url = git@github.com:meekrosoft/fff

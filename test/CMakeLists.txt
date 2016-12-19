@@ -8,7 +8,18 @@ IF (TEST_FRAMEWORK_GTEST)
 ELSE()
     MESSAGE("Using Unity for testing")
     IF (TEST_FRAMEWORK_UNITY)
-        MESSAGE("Not implemented unity")
+        FIND_PACKAGE(Unity REQUIRED)
+        FIND_PACKAGE(fff REQUIRED)
+        SET(TEST_FRAMEWORK_INCLUDE_DIRS ${UNITY_INCLUDE_DIRS} ${FFF_INCLUDE_DIRS})
+        SET(TEST_FRAMEWORK_LIBRARIES    ${UNITY_LIBRARIES})
+
+        ADD_CUSTOM_TARGET(alwaysRebuild ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/__some_imagenary_file.x)
+        ADD_CUSTOM_COMMAND(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/__some_imagenary_file.x COMMAND echo "Always Rebuilding")
+
+        ADD_CUSTOM_COMMAND(TARGET alwaysRebuild PRE_BUILD COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/update_runners.py)
+
+    ELSE()
+        MESSAGE("Not implemented unkown test framework")
     ENDIF()
 ENDIF()
 

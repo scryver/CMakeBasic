@@ -23,8 +23,8 @@ CMAKE_TEST_COMMENT = '# Project test directories | Do not edit/remove this comme
 CMAKE_SUBDIR = 'ADD_SUBDIRECTORY({name})'.format
 
 CMAKE_LIBRARY = """\
-# Create a library called "{name}" which includes the source file "{name}.cpp".
-ADD_LIBRARY({name} src/{name}.cpp)
+# Create a library called "{name}" which includes the source file "{name}.{extension}".
+ADD_LIBRARY({name} src/{name}.{extension})
 
 # Make sure the compiler can find include files for our {name} library
 # when other libraries or executables link to {name}
@@ -53,7 +53,7 @@ int {name}_func(int a)
 """.format
 
 CMAKE_TEST_LIBRARY = """\
-FILE(GLOB SRCS src/*.cpp)
+FILE(GLOB SRCS src/*.{extension})
 
 ADD_EXECUTABLE(test{CapName} ${{SRCS}})
 
@@ -69,7 +69,7 @@ ADD_TEST({CapName} test{CapName})
 
 """.format
 
-CMAKE_TEST_MAIN = """\
+CMAKE_GTEST_MAIN = """\
 #include <gtest/gtest.h>
 
 int main(int argc, char* argv[])
@@ -80,7 +80,7 @@ int main(int argc, char* argv[])
 
 """.format
 
-CMAKE_TEST_SOURCE = """\
+CMAKE_GTEST_SOURCE = """\
 #include <gtest/gtest.h>
 
 #include "{name}.h"
@@ -93,11 +93,40 @@ TEST({CapName}, StommeFunc)
 
 """.format
 
+CMAKE_UNITY_MAIN = """\
+#include "unity.h"
+
+extern void test_StommeFunc_should_Multiply(void);
+
+int main(int argc, char* argv[])
+{{
+    UNITY_BEGIN();
+    RUN_TEST(test_StommeFunc_should_Multiply);
+    return UNITY_END();
+}}
+
+""".format
+
+CMAKE_UNITY_SOURCE = """\
+#include "unity.h"
+#include "fff.h"
+DEFINE_FFF_GLOBALS;
+
+#include "{name}.h"
+
+void test_StommeFunc_should_Multiply(void)
+{{
+    int a = 5;
+    TEST_ASSERT_EQUAL(25, {name}_func(a));
+}}
+
+""".format
+
 CMAKE_EXECUTABLE = """\
 SET(EXECUTABLE_NAME "{name}")
 
 ADD_EXECUTABLE(${{EXECUTABLE_NAME}}
-               src/main.cpp)
+               src/main.{extension})
 
 # TARGET_LINK_LIBRARIES(${{EXECUTABLE_NAME}} LINK_PUBLIC voorbeeld)
 """.format
@@ -122,13 +151,18 @@ def ask_and_update_user():
     name = keep_bothering_user(
         "How should it be named? ",
         lambda x: x is not None)
+    source = keep_bothering_user(
+        "Do you want C or C++? ",
+        lambda x: x is not None and x.startswith('c'))
+    src_type = 'cpp' if source.endswith('+') else 'c'
+    test_framework = extract_test_framework()
     if exec_or_lib.startswith('l'):
-        create_library(name)
+        create_library(name, src_type, test_framework)
     else:
-        create_executable(name)
+        create_executable(name, src_type, test_framework)
 
 
-def create_library(name):
+def create_library(name, src_type, test_framework):
     print("Creating library: {}".format(name))
     libdir, srcdir = create_basic_source_dirs(name)
 
@@ -153,29 +187,39 @@ def create_library(name):
                                 CMAKE_BASE_COMMENT,
                                 CMAKE_SUBDIR(name=name))
     create_file_and_format(libdir, 'CMakeLists.txt',
-                           source=CMAKE_LIBRARY, name=name)
+                           source=CMAKE_LIBRARY, name=name, extension=src_type)
     create_file_and_format(srcdir, name + '.h',
                            source=CMAKE_LIBRARY_HEADER,
                            PROJECT_NAME=PROJECT_NAME, NAME=name.upper(),
                            name=name)
-    create_file_and_format(srcdir, name + '.cpp',
+    create_file_and_format(srcdir, name + '.' + src_type,
                            source=CMAKE_LIBRARY_SOURCE,
                            name=name)
+
+    if test_framework == 'gtest':
+        main_src = CMAKE_GTEST_MAIN
+        test_src = CMAKE_GTEST_SOURCE
+    elif test_framework == 'unity':
+        main_src = CMAKE_UNITY_MAIN
+        test_src = CMAKE_UNITY_SOURCE
+    else:
+        raise NotImplementedError("Undefined test framework")
 
     insert_into_file_after_line(os.path.join(testdir, 'CMakeLists.txt'),
                                 CMAKE_TEST_COMMENT,
                                 CMAKE_SUBDIR(name=name))
     create_file_and_format(testlibdir, 'CMakeLists.txt',
                            source=CMAKE_TEST_LIBRARY,
-                           name=name, CapName=name.capitalize())
-    create_file_and_format(testsrcdir, 'main.cpp',
-                           source=CMAKE_TEST_MAIN)
-    create_file_and_format(testsrcdir, 'test_' + name + '.cpp',
-                           source=CMAKE_TEST_SOURCE,
+                           name=name, CapName=name.capitalize(),
+                           extension=src_type)
+    create_file_and_format(testsrcdir, 'main.' + src_type,
+                           source=main_src)
+    create_file_and_format(testsrcdir, 'test_' + name + '.' + src_type,
+                           source=test_src,
                            name=name, CapName=name.capitalize())
 
 
-def create_executable(name):
+def create_executable(name, src_type, test_framework):
     print("Creating executable: {}".format(name))
     exedir, srcdir = create_basic_source_dirs(name)
 
@@ -187,8 +231,9 @@ def create_executable(name):
                                 CMAKE_BASE_COMMENT,
                                 CMAKE_SUBDIR(name=name))
     create_file_and_format(exedir, 'CMakeLists.txt',
-                           source=CMAKE_EXECUTABLE, name=name)
-    create_file_and_format(srcdir, 'main.cpp',
+                           source=CMAKE_EXECUTABLE, name=name,
+                           extension=src_type)
+    create_file_and_format(srcdir, 'main.' + src_type,
                            source=CMAKE_EXECUTABLE_MAIN,
                            name=name)
 
@@ -227,6 +272,20 @@ def create_basic_source_dirs(name, lib_or_exec='lib'):
 def create_file_and_format(*pathargs, source=None, **kwargs):
     with open(os.path.join(*pathargs), 'w') as f:
         f.writelines(source(**kwargs))
+
+
+def extract_test_framework():
+    test_framework = None
+    with open(os.path.join(BASE_DIR, 'CMakeLists.txt')) as f:
+        for line in f:
+            if 'TEST_FRAMEWORK_GTEST' in line and 'ON' in line:
+                test_framework = 'gtest'
+                break
+            elif 'TEST_FRAMEWORK_UNITY' in line and 'ON' in line:
+                test_framework = 'unity'
+                break
+    return test_framework
+
 
 
 if __name__ == '__main__':
