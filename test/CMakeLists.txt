@@ -14,12 +14,13 @@ ELSE()
         SET(TEST_FRAMEWORK_LIBRARIES    ${UNITY_LIBRARIES})
 
         # Generate at config time so CMAKE knows of these files
-        EXECUTE_PROCESS(COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/update_runners.py)
+        # @TODO: FILL IN VENDOR DIR
+        EXECUTE_PROCESS(COMMAND python3 ${VENDOR_DIR}/build_utils/update_unity_runners.py)
 
         ADD_CUSTOM_TARGET(alwaysRebuild ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/__some_imagenary_file.x)
         ADD_CUSTOM_COMMAND(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/__some_imagenary_file.x COMMAND echo "Always Rebuilding")
 
-        ADD_CUSTOM_COMMAND(TARGET alwaysRebuild PRE_BUILD COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/update_runners.py)
+        ADD_CUSTOM_COMMAND(TARGET alwaysRebuild PRE_BUILD COMMAND python3 ${VENDOR_DIR}/build_utils/update_unity_runners.py)
 
     ELSE()
         MESSAGE("Not implemented unkown test framework")
