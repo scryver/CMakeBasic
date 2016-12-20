@@ -1,0 +1,6 @@
+SET(EXECUTABLE_NAME "{name}")
+
+ADD_EXECUTABLE(${{EXECUTABLE_NAME}}
+               src/main.{extension})
+
+# TARGET_LINK_LIBRARIES(${{EXECUTABLE_NAME}} LINK_PUBLIC voorbeeld)

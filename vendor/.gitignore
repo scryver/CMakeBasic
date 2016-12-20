@@ -2,4 +2,5 @@
 !Unity
 !fff
 !build_utils/
+!build_utils/**/*
 !.gitignore
